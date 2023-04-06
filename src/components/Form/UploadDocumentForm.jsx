@@ -63,9 +63,13 @@ const UploadDocumentForm = () => {
     let fileName;
 
     if (fileObject.file.length) {
-      fileName = Object.keys(fileObject.file)
-        .map((index) => String(`"${fileObject.file[index].name}"`))
-        .join(' and ');
+      if (fileObject.file.length > 2) {
+        fileName = `${fileObject.file.length} files`;
+      } else {
+        fileName = Object.keys(fileObject.file)
+          .map((index) => String(`"${fileObject.file[index].name}"`))
+          .join(' and ');
+      }
     } else {
       fileName = String(`"${fileObject.file.name}"`);
     }
