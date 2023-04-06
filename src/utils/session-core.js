@@ -114,14 +114,30 @@ export const uploadDocument = async (session, fileObject) => {
 
   // Place file into Pod container and generate new ttl file for container
   await placeFileInContainer(session, fileObject, documentUrl);
-  const newTtlFile = buildThing(createThing({ name: 'document' }))
+  let newTtlFile = buildThing(createThing({ name: 'document' }))
     .addDatetime('https://schema.org/uploadDate', new Date())
-    .addStringNoLocale(SCHEMA_INRUPT.name, fileObject.file.name)
     .addStringNoLocale(SCHEMA_INRUPT.identifier, fileObject.type)
     .addStringNoLocale(SCHEMA_INRUPT.endDate, fileObject.date)
     .addStringNoLocale(SCHEMA_INRUPT.description, fileObject.description)
-    .addUrl(SCHEMA_INRUPT.url, `${documentUrl}${fileObject.file.name}`)
     .build();
+
+  if (fileObject.file.length) {
+    Object.keys(fileObject.file).forEach((index) => {
+      newTtlFile = buildThing(newTtlFile)
+        .addStringNoLocale(SCHEMA_INRUPT.name, fileObject.file[index].name)
+        .addUrl(
+          SCHEMA_INRUPT.url,
+          `${documentUrl}${fileObject.file[index].name.replace(' ', '%20')}`
+        )
+        .build();
+      return newTtlFile;
+    });
+  } else {
+    newTtlFile = buildThing(newTtlFile)
+      .addStringNoLocale(SCHEMA_INRUPT.name, fileObject.file.name)
+      .addUrl(SCHEMA_INRUPT.url, `${documentUrl}${fileObject.file.name}`)
+      .build();
+  }
 
   let newSolidDataset = createSolidDataset();
   newSolidDataset = setThing(newSolidDataset, newTtlFile);
@@ -151,13 +167,20 @@ export const uploadDocument = async (session, fileObject) => {
  */
 
 export const updateDocument = async (session, fileObject) => {
+  if (fileObject.file.length) {
+    throw new Error('Currently does not support multi-file updates.');
+  }
+
   const documentUrl = getContainerUrl(session, fileObject.type, 'self-fetch');
   const solidDataset = await getSolidDataset(documentUrl, { fetch: session.fetch });
 
   // Checks for file in Solid Pod
   const [, files] = getContainerUrlAndFiles(solidDataset);
   const fileName = fileObject.file.name;
-  const fileExist = files.map((file) => file.url).includes(`${documentUrl}${fileName}`);
+
+  const fileExist = files
+    .map((file) => file.url)
+    .includes(`${documentUrl}${fileName.replace(' ', '%20')}`);
 
   if (fileExist) {
     if (window.confirm(`File ${fileName} exist in Pod container, do you wish to update it?`)) {

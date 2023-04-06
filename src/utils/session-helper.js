@@ -62,10 +62,19 @@ export const SOLID_IDENTITY_PROVIDER = 'https://opencommons.net';
  */
 
 export const placeFileInContainer = async (session, fileObject, containerUrl) => {
-  await saveFileInContainer(containerUrl, fileObject.file, {
-    slug: fileObject.file.name,
-    fetch: session.fetch
-  });
+  if (fileObject.file.length) {
+    Object.keys(fileObject.file).map(async (index) => {
+      await saveFileInContainer(containerUrl, fileObject.file[index], {
+        slug: fileObject.file[index].name,
+        fetch: session.fetch
+      });
+    });
+  } else {
+    await saveFileInContainer(containerUrl, fileObject.file, {
+      slug: fileObject.file.name,
+      fetch: session.fetch
+    });
+  }
 };
 
 /**

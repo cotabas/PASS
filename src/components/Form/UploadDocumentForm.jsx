@@ -21,6 +21,8 @@ const UploadDocumentForm = () => {
   const handleFileChange = (event) => {
     if (event.target.files.length === 1) {
       dispatch({ type: 'SET_FILE', payload: event.target.files[0] });
+    } else if (event.target.files.length > 1) {
+      dispatch({ type: 'SET_FILE', payload: event.target.files });
     } else {
       dispatch({ type: 'CLEAR_FILE' });
     }
@@ -43,7 +45,7 @@ const UploadDocumentForm = () => {
     const expirationDate = event.target.date.value;
     const docDescription = event.target.description.value;
 
-    if (!state.file) {
+    if (state.file.length === 0) {
       runNotification('Submission failed. Reason: missing file', 5, state, dispatch);
       setTimeout(() => {
         dispatch({ type: 'CLEAR_PROCESSING' });
@@ -58,16 +60,24 @@ const UploadDocumentForm = () => {
       file: state.file
     };
 
-    const fileName = fileObject.file.name;
+    let fileName;
+
+    if (fileObject.file.length) {
+      fileName = Object.keys(fileObject.file)
+        .map((index) => String(`"${fileObject.file[index].name}"`))
+        .join(' and ');
+    } else {
+      fileName = String(`"${fileObject.file.name}"`);
+    }
 
     try {
       await uploadDocument(session, fileObject);
 
-      runNotification(`Uploading "${fileName}" to Solid...`, 3, state, dispatch);
+      runNotification(`Uploading ${fileName} to Solid...`, 3, state, dispatch);
 
       // setTimeout is used to let uploadDocument finish its upload to user's Pod
       setTimeout(() => {
-        runNotification(`File "${fileName}" uploaded to Solid.`, 5, state, dispatch);
+        runNotification(`File ${fileName} uploaded to Solid.`, 5, state, dispatch);
         setTimeout(() => {
           event.target.uploadDoctype.value = '';
           event.target.date.value = '';
@@ -82,7 +92,7 @@ const UploadDocumentForm = () => {
 
         if (fileExist) {
           setTimeout(() => {
-            runNotification(`File "${fileName}" updated on Solid.`, 5, state, dispatch);
+            runNotification(`File ${fileName} updated on Solid.`, 5, state, dispatch);
             setTimeout(() => {
               event.target.uploadDoctype.value = '';
               event.target.date.value = '';
@@ -91,7 +101,7 @@ const UploadDocumentForm = () => {
           }, 3000);
         } else {
           setTimeout(() => {
-            runNotification(`File "${fileName}" uploaded on Solid.`, 5, state, dispatch);
+            runNotification(`File ${fileName} uploaded on Solid.`, 5, state, dispatch);
             setTimeout(() => {
               event.target.uploadDoctype.value = '';
               event.target.date.value = '';
@@ -144,6 +154,7 @@ const UploadDocumentForm = () => {
             name="uploadDoctype"
             accept=".pdf, .docx, .doc, .txt, .rtf"
             onChange={handleFileChange}
+            multiple
           />
           <button disabled={state.processing} type="submit">
             Upload file
